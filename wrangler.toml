@@ -9,7 +9,7 @@ head_sampling_rate = 1
 
 [vars]
 SUPABASE_STORAGE_BUCKET = "seo-materials"
-GITHUB_OWNER = "YOUR_GITHUB_OWNER"
+GITHUB_OWNER = "fording1688"
 TOOLS_GITHUB_REPO = "ToolsFinderHub"
 ABRASIVE_GITHUB_REPO = "abrasive-wheel-website"
 GITHUB_BRANCH = "main"
