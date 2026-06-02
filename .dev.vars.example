@@ -1,0 +1,15 @@
+TELEGRAM_BOT_TOKEN=123456:replace-me
+TELEGRAM_ALLOWED_CHAT_ID=123456789
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=replace-me
+SUPABASE_STORAGE_BUCKET=seo-materials
+AI_API_KEY=sk-or-v1-replace-me
+AI_API_BASE_URL=https://openrouter.ai/api/v1
+AI_MODEL=openai/gpt-4.1-mini
+OPENROUTER_APP_NAME=SEO Materials Telegram Bot
+OPENROUTER_SITE_URL=https://example.com
+GITHUB_TOKEN=github_pat_replace_me
+GITHUB_OWNER=your-github-owner
+TOOLS_GITHUB_REPO=ToolsFinderHub
+ABRASIVE_GITHUB_REPO=abrasive-wheel-website
+GITHUB_BRANCH=main

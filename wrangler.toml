@@ -1,0 +1,26 @@
+name = "seo-materials-telegram-bot"
+main = "src/index.ts"
+compatibility_date = "2026-06-02"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[vars]
+SUPABASE_STORAGE_BUCKET = "seo-materials"
+GITHUB_OWNER = "YOUR_GITHUB_OWNER"
+TOOLS_GITHUB_REPO = "ToolsFinderHub"
+ABRASIVE_GITHUB_REPO = "abrasive-wheel-website"
+GITHUB_BRANCH = "main"
+AI_API_BASE_URL = "https://openrouter.ai/api/v1"
+AI_MODEL = "openai/gpt-4.1-mini"
+OPENROUTER_APP_NAME = "SEO Materials Telegram Bot"
+
+# Set secrets with:
+# wrangler secret put TELEGRAM_BOT_TOKEN
+# wrangler secret put TELEGRAM_ALLOWED_CHAT_ID
+# wrangler secret put SUPABASE_URL
+# wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+# wrangler secret put AI_API_KEY
+# wrangler secret put GITHUB_TOKEN
