@@ -365,24 +365,23 @@ function formatCounts(counts: Record<string, number>): string {
 
 function startText(): string {
   return [
-    "Send me any idea, link, screenshot note, tool update, or ecommerce experience. I will organize it into your ToolsFinderHub knowledge base.",
+    "ToolsFinderHub Article Material Bot",
     "",
-    "Default:",
-    "Send any paragraph, link, screenshot note, or writing instruction directly. I will save it as ToolsFinderHub article material.",
+    "Default use:",
+    "Send me any paragraph, article instruction, link, note, or screenshot caption directly.",
+    "I will save it as ToolsFinderHub article material.",
     "",
-    "Knowledge commands:",
-    "/idea + content - save as idea",
-    "/tool + content - save as tool",
-    "/amazon + content - save as amazon",
-    "/seo + content - save as seo",
-    "/automation + content - save as automation",
-    "",
-    "SEO article commands:",
-    "/tools + text/link/photo/file - save article material for ToolsFinderHub",
-    "/abrasive + text/link/photo/file - save article material for abrasive-wheel-website",
-    "/generate - turn new materials into article drafts",
+    "Main commands:",
+    "/generate - generate article drafts from new materials",
     "/list - show latest 5 drafts",
     "/publish article_id - publish a draft to GitHub",
-    "/status - show source/article stats"
+    "/status - show material and article stats",
+    "",
+    "Optional:",
+    "/abrasive + content - save material for abrasive-wheel-website",
+    "/tools + content - explicitly save for ToolsFinderHub",
+    "",
+    "Knowledge base commands:",
+    "/idea /tool /amazon /seo /automation + content"
   ].join("\n");
 }
