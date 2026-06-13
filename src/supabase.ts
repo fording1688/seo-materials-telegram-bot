@@ -1,4 +1,4 @@
-import type { Env, SeoArticle, SeoSource } from "./types";
+import type { Env, KnowledgeItem, SeoArticle, SeoSource } from "./types";
 
 function baseHeaders(env: Env): HeadersInit {
   return {
@@ -112,6 +112,67 @@ export async function getStats(env: Env): Promise<{ sources: Record<string, numb
     sources: countByStatus(sources),
     articles: countByStatus(articles)
   };
+}
+
+export async function insertKnowledgeItem(env: Env, item: Partial<KnowledgeItem>): Promise<KnowledgeItem> {
+  const rows = await supabaseFetch<KnowledgeItem[]>(env, "/rest/v1/knowledge_items", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(item)
+  });
+
+  return rows[0];
+}
+
+export async function listKnowledgeItems(
+  env: Env,
+  filters: { category?: string; item_type?: string; status?: string; limit?: number } = {}
+): Promise<KnowledgeItem[]> {
+  const params = new URLSearchParams({
+    select: "*",
+    order: "created_at.desc",
+    limit: String(filters.limit ?? 100)
+  });
+
+  if (filters.category) params.set("category", `eq.${filters.category}`);
+  if (filters.item_type) params.set("item_type", `eq.${filters.item_type}`);
+  if (filters.status) params.set("status", `eq.${filters.status}`);
+
+  return supabaseFetch<KnowledgeItem[]>(env, `/rest/v1/knowledge_items?${params.toString()}`);
+}
+
+export async function getKnowledgeItem(env: Env, id: string): Promise<KnowledgeItem | null> {
+  const rows = await supabaseFetch<KnowledgeItem[]>(
+    env,
+    `/rest/v1/knowledge_items?id=eq.${encodeURIComponent(id)}&limit=1`
+  );
+  return rows[0] ?? null;
+}
+
+export async function updateKnowledgeItem(
+  env: Env,
+  id: string,
+  patch: Partial<KnowledgeItem>
+): Promise<KnowledgeItem> {
+  const rows = await supabaseFetch<KnowledgeItem[]>(env, `/rest/v1/knowledge_items?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(patch)
+  });
+
+  return rows[0];
+}
+
+export async function deleteKnowledgeItem(env: Env, id: string): Promise<void> {
+  await supabaseFetch<void>(env, `/rest/v1/knowledge_items?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE"
+  });
 }
 
 function countByStatus(rows: Array<{ status: string }>): Record<string, number> {

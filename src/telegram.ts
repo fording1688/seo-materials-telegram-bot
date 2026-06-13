@@ -1,9 +1,10 @@
-import { generateArticleDraft, summarizeSource } from "./ai";
+import { generateArticleDraft, organizeKnowledgeItem, summarizeSource } from "./ai";
 import { publishArticleToGitHub, repoForSite } from "./github";
 import {
   getArticle,
   getStats,
   insertArticle,
+  insertKnowledgeItem,
   insertSource,
   listNewSources,
   listRecentDrafts,
@@ -11,7 +12,7 @@ import {
   updateSource,
   uploadToStorage
 } from "./supabase";
-import type { Env, SourceType, TargetSite, TelegramDocument, TelegramMessage, TelegramPhoto, TelegramUpdate } from "./types";
+import type { Env, KnowledgeItemType, SourceType, TargetSite, TelegramDocument, TelegramMessage, TelegramPhoto, TelegramUpdate } from "./types";
 
 const urlPattern = /https?:\/\/[^\s<>"']+/i;
 
@@ -63,11 +64,45 @@ export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): P
       return;
     }
 
-    await sendTelegramMessage(env, chatId, "Use /tools or /abrasive before your material. Send /start for examples.");
+    const knowledgeType = commandToKnowledgeType(command);
+    await saveKnowledge(env, message, knowledgeType);
   } catch (error) {
     console.error(JSON.stringify({ event: "telegram_error", error: String(error) }));
     await sendTelegramMessage(env, chatId, `Error: ${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+async function saveKnowledge(env: Env, message: TelegramMessage, forcedType?: KnowledgeItemType): Promise<void> {
+  const rawInput = stripKnowledgeCommand(message.text ?? message.caption ?? "");
+  if (!rawInput) {
+    await sendTelegramMessage(env, String(message.chat.id), "Send me text, a link, or a screenshot note to save.");
+    return;
+  }
+
+  const draft = await organizeKnowledgeItem(env, rawInput, forcedType);
+  const item = await insertKnowledgeItem(env, {
+    title: draft.title,
+    content: draft.content,
+    raw_input: rawInput,
+    item_type: draft.item_type,
+    category: draft.category,
+    tags: draft.tags,
+    source_url: draft.source_url || null,
+    ai_summary: draft.ai_summary,
+    article_idea: draft.article_idea,
+    status: "new"
+  });
+
+  await sendTelegramMessage(env, String(message.chat.id), [
+    "Saved to Knowledge Base",
+    "",
+    `Title: ${item.title}`,
+    `Category: ${item.category}`,
+    `Type: ${item.item_type}`,
+    `Tags: ${item.tags.join(", ")}`,
+    `Possible Article: ${item.article_idea}`,
+    `Status: ${item.status}`
+  ].join("\n"));
 }
 
 async function saveSource(env: Env, message: TelegramMessage, targetSite: TargetSite): Promise<void> {
@@ -274,9 +309,30 @@ function stripCommand(text: string): string {
   return text.replace(/^\/(?:tools|abrasive)(?:@\w+)?\s*/i, "").trim();
 }
 
+function stripKnowledgeCommand(text: string): string {
+  return text.replace(/^\/(?:idea|tool|amazon|seo|automation)(?:@\w+)?\s*/i, "").trim();
+}
+
 function normalizeCommand(text: string): string {
   const [rawCommand = ""] = text.trim().split(/\s+/, 1);
   return rawCommand.replace(/@\w+$/i, "");
+}
+
+function commandToKnowledgeType(command: string): KnowledgeItemType | undefined {
+  switch (command) {
+    case "/idea":
+      return "idea";
+    case "/tool":
+      return "tool";
+    case "/amazon":
+      return "amazon";
+    case "/seo":
+      return "seo";
+    case "/automation":
+      return "automation";
+    default:
+      return undefined;
+  }
 }
 
 function sanitizeFileName(fileName: string): string {
@@ -298,10 +354,18 @@ function formatCounts(counts: Record<string, number>): string {
 
 function startText(): string {
   return [
-    "SEO Materials Bot",
+    "Send me any idea, link, screenshot note, tool update, or ecommerce experience. I will organize it into your ToolsFinderHub knowledge base.",
     "",
-    "/tools + text/link/photo/file - save material for ToolsFinderHub",
-    "/abrasive + text/link/photo/file - save material for abrasive-wheel-website",
+    "Knowledge commands:",
+    "/idea + content - save as idea",
+    "/tool + content - save as tool",
+    "/amazon + content - save as amazon",
+    "/seo + content - save as seo",
+    "/automation + content - save as automation",
+    "",
+    "SEO article commands:",
+    "/tools + text/link/photo/file - save article material for ToolsFinderHub",
+    "/abrasive + text/link/photo/file - save article material for abrasive-wheel-website",
     "/generate - turn new materials into article drafts",
     "/list - show latest 5 drafts",
     "/publish article_id - publish a draft to GitHub",

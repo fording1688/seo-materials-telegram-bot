@@ -12,6 +12,9 @@ Cloudflare Worker MVP for saving SEO materials from Telegram, storing them in Su
 - `/list` shows the latest 5 drafts.
 - `/publish article_id` commits a draft to GitHub.
 - `/status` shows source and article counts.
+- Plain text and links are organized into `public.knowledge_items`.
+- `/idea`, `/tool`, `/amazon`, `/seo`, and `/automation` force a knowledge item type.
+- `/admin/knowledge` provides a password-protected knowledge base UI.
 
 ## Setup
 
@@ -27,6 +30,7 @@ Run `supabase/init.sql` in the Supabase SQL editor. It creates:
 
 - `public.seo_sources`
 - `public.seo_articles`
+- `public.knowledge_items`
 - Storage bucket `seo-materials`
 - RLS enabled on both tables
 - Public read policy for uploaded files
@@ -49,6 +53,7 @@ wrangler secret put SUPABASE_URL
 wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 wrangler secret put AI_API_KEY
 wrangler secret put GITHUB_TOKEN
+wrangler secret put ADMIN_PASSWORD
 ```
 
 5. Edit `wrangler.toml` vars:
@@ -93,6 +98,25 @@ curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
 ```
 
 For images, send the photo with a caption beginning with `/tools` or `/abrasive`.
+
+Knowledge base examples:
+
+```text
+Today I configured Cloudflare Email Routing for a small SEO site...
+/idea A comparison post about AI coding agents for non-technical founders
+/tool https://cursor.com/changelog
+/amazon Lessons from testing product image angles for conversion
+/seo Internal linking checklist for ToolsFinderHub software pages
+/automation Telegram to Supabase content capture workflow
+```
+
+Open the admin UI:
+
+```text
+https://YOUR_WORKER.YOUR_ACCOUNT.workers.dev/admin/knowledge
+```
+
+Use username `admin` and the `ADMIN_PASSWORD` secret as the password.
 
 ## GitHub Permissions
 

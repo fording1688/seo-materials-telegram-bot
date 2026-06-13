@@ -24,3 +24,4 @@ OPENROUTER_APP_NAME = "SEO Materials Telegram Bot"
 # wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 # wrangler secret put AI_API_KEY
 # wrangler secret put GITHUB_TOKEN
+# wrangler secret put ADMIN_PASSWORD

@@ -8,6 +8,7 @@ AI_API_BASE_URL=https://openrouter.ai/api/v1
 AI_MODEL=openai/gpt-4.1-mini
 OPENROUTER_APP_NAME=SEO Materials Telegram Bot
 OPENROUTER_SITE_URL=https://example.com
+ADMIN_PASSWORD=replace-me
 GITHUB_TOKEN=github_pat_replace_me
 GITHUB_OWNER=your-github-owner
 TOOLS_GITHUB_REPO=ToolsFinderHub

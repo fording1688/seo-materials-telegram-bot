@@ -16,6 +16,7 @@ export interface Env {
   TOOLS_GITHUB_REPO: string;
   ABRASIVE_GITHUB_REPO: string;
   GITHUB_BRANCH?: string;
+  ADMIN_PASSWORD?: string;
 }
 
 export type TargetSite = "toolsfinderhub" | "abrasive";
@@ -98,4 +99,55 @@ export interface ArticleDraft {
   outline: string[];
   markdown_content: string;
   faq: Array<{ question: string; answer: string }>;
+}
+
+export type KnowledgeItemType =
+  | "note"
+  | "idea"
+  | "experience"
+  | "tool"
+  | "news"
+  | "link"
+  | "screenshot"
+  | "amazon"
+  | "seo"
+  | "automation";
+
+export type KnowledgeCategory =
+  | "AI Tools"
+  | "ToolsFinderHub"
+  | "Amazon"
+  | "SEO"
+  | "Automation"
+  | "Facebook"
+  | "LinkedIn"
+  | "YouTube"
+  | "Cloudflare"
+  | "Supabase";
+
+export interface KnowledgeItem {
+  id: string;
+  title: string;
+  content: string;
+  raw_input: string;
+  item_type: KnowledgeItemType;
+  category: KnowledgeCategory;
+  tags: string[];
+  source_url: string | null;
+  ai_summary: string;
+  article_idea: string;
+  status: "new" | "reviewed" | "article_ready" | "archived";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KnowledgeDraft {
+  title: string;
+  content: string;
+  item_type: KnowledgeItemType;
+  category: KnowledgeCategory;
+  tags: string[];
+  source_url: string;
+  ai_summary: string;
+  article_idea: string;
 }

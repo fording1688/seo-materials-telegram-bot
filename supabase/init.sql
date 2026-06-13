@@ -43,6 +43,25 @@ create table if not exists public.seo_articles (
   constraint seo_articles_status_check check (status in ('draft', 'published', 'error'))
 );
 
+create table if not exists public.knowledge_items (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  content text not null,
+  raw_input text not null,
+  item_type text not null,
+  category text not null,
+  tags text[] not null default '{}',
+  source_url text,
+  ai_summary text not null,
+  article_idea text not null,
+  status text not null default 'new',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  constraint knowledge_items_item_type_check check (item_type in ('note', 'idea', 'experience', 'tool', 'news', 'link', 'screenshot', 'amazon', 'seo', 'automation')),
+  constraint knowledge_items_category_check check (category in ('AI Tools', 'ToolsFinderHub', 'Amazon', 'SEO', 'Automation', 'Facebook', 'LinkedIn', 'YouTube', 'Cloudflare', 'Supabase')),
+  constraint knowledge_items_status_check check (status in ('new', 'reviewed', 'article_ready', 'archived'))
+);
+
 create index if not exists seo_sources_status_created_at_idx
   on public.seo_sources (status, created_at);
 
@@ -52,8 +71,21 @@ create index if not exists seo_articles_status_created_at_idx
 create unique index if not exists seo_articles_target_site_slug_idx
   on public.seo_articles (target_site, slug);
 
+create index if not exists knowledge_items_created_at_idx
+  on public.knowledge_items (created_at desc);
+
+create index if not exists knowledge_items_category_idx
+  on public.knowledge_items (category);
+
+create index if not exists knowledge_items_item_type_idx
+  on public.knowledge_items (item_type);
+
+create index if not exists knowledge_items_status_idx
+  on public.knowledge_items (status);
+
 alter table public.seo_sources enable row level security;
 alter table public.seo_articles enable row level security;
+alter table public.knowledge_items enable row level security;
 
 insert into storage.buckets (id, name, public)
 values ('seo-materials', 'seo-materials', true)
@@ -70,6 +102,21 @@ begin
     create policy "seo_materials_public_read"
     on storage.objects for select
     using (bucket_id = 'seo-materials');
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'knowledge_items'
+      and policyname = 'knowledge_items_service_role_all'
+  ) then
+    create policy "knowledge_items_service_role_all"
+    on public.knowledge_items for all
+    using (auth.role() = 'service_role')
+    with check (auth.role() = 'service_role');
   end if;
 end $$;
 
