@@ -114,6 +114,11 @@ export async function getStats(env: Env): Promise<{ sources: Record<string, numb
   };
 }
 
+export async function getSourceStats(env: Env): Promise<Record<string, number>> {
+  const sources = await supabaseFetch<Array<{ status: string }>>(env, "/rest/v1/seo_sources?select=status");
+  return countByStatus(sources);
+}
+
 export async function insertKnowledgeItem(env: Env, item: Partial<KnowledgeItem>): Promise<KnowledgeItem> {
   const rows = await supabaseFetch<KnowledgeItem[]>(env, "/rest/v1/knowledge_items", {
     method: "POST",

@@ -1,18 +1,9 @@
-import { generateArticleDraft, organizeKnowledgeItem, summarizeSource } from "./ai";
-import { publishArticleToGitHub, repoForSite } from "./github";
 import {
-  getArticle,
-  getStats,
-  insertArticle,
-  insertKnowledgeItem,
+  getSourceStats,
   insertSource,
-  listNewSources,
-  listRecentDrafts,
-  updateArticle,
-  updateSource,
   uploadToStorage
 } from "./supabase";
-import type { Env, KnowledgeItemType, SourceType, TargetSite, TelegramDocument, TelegramMessage, TelegramPhoto, TelegramUpdate } from "./types";
+import type { Env, SourceType, TargetSite, TelegramDocument, TelegramMessage, TelegramPhoto, TelegramUpdate } from "./types";
 
 const urlPattern = /https?:\/\/[^\s<>"']+/i;
 
@@ -37,23 +28,8 @@ export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): P
       return;
     }
 
-    if (command === "/generate") {
-      await generateDrafts(env, chatId);
-      return;
-    }
-
-    if (command === "/list") {
-      await listDrafts(env, chatId);
-      return;
-    }
-
     if (command === "/status") {
       await showStatus(env, chatId);
-      return;
-    }
-
-    if (command === "/publish") {
-      await publishDraft(env, chatId, text);
       return;
     }
 
@@ -61,12 +37,6 @@ export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): P
       const targetSite = command === "/tools" ? "toolsfinderhub" : "abrasive";
       await saveSource(env, message, targetSite);
       await sendTelegramMessage(env, chatId, `Saved material for ${targetSite}.`);
-      return;
-    }
-
-    const knowledgeType = commandToKnowledgeType(command);
-    if (knowledgeType) {
-      await saveKnowledge(env, message, knowledgeType);
       return;
     }
 
@@ -81,39 +51,6 @@ export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): P
     console.error(JSON.stringify({ event: "telegram_error", error: String(error) }));
     await sendTelegramMessage(env, chatId, `Error: ${error instanceof Error ? error.message : String(error)}`);
   }
-}
-
-async function saveKnowledge(env: Env, message: TelegramMessage, forcedType?: KnowledgeItemType): Promise<void> {
-  const rawInput = stripKnowledgeCommand(message.text ?? message.caption ?? "");
-  if (!rawInput) {
-    await sendTelegramMessage(env, String(message.chat.id), "Send me text, a link, or a screenshot note to save.");
-    return;
-  }
-
-  const draft = await organizeKnowledgeItem(env, rawInput, forcedType);
-  const item = await insertKnowledgeItem(env, {
-    title: draft.title,
-    content: draft.content,
-    raw_input: rawInput,
-    item_type: draft.item_type,
-    category: draft.category,
-    tags: draft.tags,
-    source_url: draft.source_url || null,
-    ai_summary: draft.ai_summary,
-    article_idea: draft.article_idea,
-    status: "new"
-  });
-
-  await sendTelegramMessage(env, String(message.chat.id), [
-    "Saved to Knowledge Base",
-    "",
-    `Title: ${item.title}`,
-    `Category: ${item.category}`,
-    `Type: ${item.item_type}`,
-    `Tags: ${item.tags.join(", ")}`,
-    `Possible Article: ${item.article_idea}`,
-    `Status: ${item.status}`
-  ].join("\n"));
 }
 
 async function saveSource(env: Env, message: TelegramMessage, targetSite: TargetSite): Promise<void> {
@@ -150,110 +87,11 @@ async function saveSource(env: Env, message: TelegramMessage, targetSite: Target
   });
 }
 
-async function generateDrafts(env: Env, chatId: string): Promise<void> {
-  const sources = await listNewSources(env, 5);
-  if (sources.length === 0) {
-    await sendTelegramMessage(env, chatId, "No new materials found.");
-    return;
-  }
-
-  await sendTelegramMessage(env, chatId, `Generating drafts from ${sources.length} new material(s)...`);
-
-  let generated = 0;
-  for (const source of sources) {
-    try {
-      const summary = await summarizeSource(env, source);
-      const enrichedSource = await updateSource(env, source.id, {
-        ai_summary: summary.summary,
-        suggested_topics: summary.suggested_topics,
-        status: "processing"
-      });
-      const draft = await generateArticleDraft(env, enrichedSource, summary);
-      const article = await insertArticle(env, {
-        source_id: source.id,
-        target_site: source.target_site,
-        title: draft.title,
-        slug: draft.slug,
-        meta_description: draft.meta_description,
-        keywords: draft.keywords,
-        outline: draft.outline,
-        markdown_content: draft.markdown_content,
-        status: "draft"
-      });
-
-      await updateSource(env, source.id, {
-        status: "processed",
-        processed_at: new Date().toISOString(),
-        error_message: null
-      });
-
-      generated += 1;
-      await sendTelegramMessage(env, chatId, `Draft ready:\n${article.title}\nID: ${article.id}`);
-    } catch (error) {
-      await updateSource(env, source.id, {
-        status: "error",
-        error_message: error instanceof Error ? error.message : String(error),
-        processed_at: new Date().toISOString()
-      });
-    }
-  }
-
-  await sendTelegramMessage(env, chatId, `Done. Generated ${generated} draft(s).`);
-}
-
-async function listDrafts(env: Env, chatId: string): Promise<void> {
-  const drafts = await listRecentDrafts(env, 5);
-  if (drafts.length === 0) {
-    await sendTelegramMessage(env, chatId, "No drafts yet.");
-    return;
-  }
-
-  const lines = drafts.map((draft) => [
-    draft.title,
-    `ID: ${draft.id}`,
-    `Site: ${draft.target_site}`,
-    `Slug: ${draft.slug}`
-  ].join("\n"));
-
-  await sendTelegramMessage(env, chatId, lines.join("\n\n"));
-}
-
-async function publishDraft(env: Env, chatId: string, text: string): Promise<void> {
-  const articleId = text.trim().split(/\s+/)[1];
-  if (!articleId) {
-    await sendTelegramMessage(env, chatId, "Usage: /publish article_id");
-    return;
-  }
-
-  const article = await getArticle(env, articleId);
-  if (!article) {
-    await sendTelegramMessage(env, chatId, "Article not found.");
-    return;
-  }
-
-  if (article.status === "published") {
-    await sendTelegramMessage(env, chatId, "Article is already published.");
-    return;
-  }
-
-  const result = await publishArticleToGitHub(env, article);
-  await updateArticle(env, article.id, {
-    status: "published",
-    github_owner: result.owner,
-    github_repo: result.repo,
-    github_path: result.path,
-    published_at: new Date().toISOString()
-  });
-
-  await sendTelegramMessage(env, chatId, `Published to ${result.owner}/${result.repo}:${result.path}`);
-}
-
 async function showStatus(env: Env, chatId: string): Promise<void> {
-  const stats = await getStats(env);
+  const stats = await getSourceStats(env);
   await sendTelegramMessage(env, chatId, [
-    "SEO automation status",
-    `Sources: ${formatCounts(stats.sources)}`,
-    `Articles: ${formatCounts(stats.articles)}`
+    "Material bot status",
+    `seo_sources: ${formatCounts(stats)}`
   ].join("\n"));
 }
 
@@ -320,30 +158,9 @@ function stripCommand(text: string): string {
   return text.replace(/^\/(?:tools|abrasive)(?:@\w+)?\s*/i, "").trim();
 }
 
-function stripKnowledgeCommand(text: string): string {
-  return text.replace(/^\/(?:idea|tool|amazon|seo|automation)(?:@\w+)?\s*/i, "").trim();
-}
-
 function normalizeCommand(text: string): string {
   const [rawCommand = ""] = text.trim().split(/\s+/, 1);
   return rawCommand.replace(/@\w+$/i, "");
-}
-
-function commandToKnowledgeType(command: string): KnowledgeItemType | undefined {
-  switch (command) {
-    case "/idea":
-      return "idea";
-    case "/tool":
-      return "tool";
-    case "/amazon":
-      return "amazon";
-    case "/seo":
-      return "seo";
-    case "/automation":
-      return "automation";
-    default:
-      return undefined;
-  }
 }
 
 function sanitizeFileName(fileName: string): string {
@@ -372,16 +189,10 @@ function startText(): string {
     "I will save it as ToolsFinderHub article material.",
     "",
     "Main commands:",
-    "/generate - generate article drafts from new materials",
-    "/list - show latest 5 drafts",
-    "/publish article_id - publish a draft to GitHub",
-    "/status - show material and article stats",
+    "/status - show material stats",
     "",
     "Optional:",
     "/abrasive + content - save material for abrasive-wheel-website",
-    "/tools + content - explicitly save for ToolsFinderHub",
-    "",
-    "Knowledge base commands:",
-    "/idea /tool /amazon /seo /automation + content"
+    "/tools + content - explicitly save for ToolsFinderHub"
   ].join("\n");
 }
