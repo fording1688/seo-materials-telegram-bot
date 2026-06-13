@@ -12,7 +12,7 @@ Cloudflare Worker MVP for saving SEO materials from Telegram, storing them in Su
 - `/list` shows the latest 5 drafts.
 - `/publish article_id` commits a draft to GitHub.
 - `/status` shows source and article counts.
-- Plain text and links are organized into `public.knowledge_items`.
+- Plain text and links without a command are saved as ToolsFinderHub article material in `public.seo_sources`.
 - `/idea`, `/tool`, `/amazon`, `/seo`, and `/automation` force a knowledge item type.
 - `/admin/knowledge` provides a password-protected knowledge base UI.
 
@@ -89,6 +89,7 @@ curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
 ## Telegram Usage
 
 ```text
+Write an article about how small SEO sites can collect daily ideas from Telegram and turn them into publishable drafts.
 /tools Best AI SEO tool list idea: https://example.com
 /abrasive CBN grinding wheel buyer guide notes...
 /generate
@@ -102,7 +103,6 @@ For images, send the photo with a caption beginning with `/tools` or `/abrasive`
 Knowledge base examples:
 
 ```text
-Today I configured Cloudflare Email Routing for a small SEO site...
 /idea A comparison post about AI coding agents for non-technical founders
 /tool https://cursor.com/changelog
 /amazon Lessons from testing product image angles for conversion

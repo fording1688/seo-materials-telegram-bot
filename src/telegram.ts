@@ -65,7 +65,18 @@ export async function handleTelegramWebhook(env: Env, update: TelegramUpdate): P
     }
 
     const knowledgeType = commandToKnowledgeType(command);
-    await saveKnowledge(env, message, knowledgeType);
+    if (knowledgeType) {
+      await saveKnowledge(env, message, knowledgeType);
+      return;
+    }
+
+    if (!command.startsWith("/")) {
+      await saveSource(env, message, "toolsfinderhub");
+      await sendTelegramMessage(env, chatId, "Saved as ToolsFinderHub article material.");
+      return;
+    }
+
+    await sendTelegramMessage(env, chatId, "Unknown command. Send /start for usage.");
   } catch (error) {
     console.error(JSON.stringify({ event: "telegram_error", error: String(error) }));
     await sendTelegramMessage(env, chatId, `Error: ${error instanceof Error ? error.message : String(error)}`);
@@ -355,6 +366,9 @@ function formatCounts(counts: Record<string, number>): string {
 function startText(): string {
   return [
     "Send me any idea, link, screenshot note, tool update, or ecommerce experience. I will organize it into your ToolsFinderHub knowledge base.",
+    "",
+    "Default:",
+    "Send any paragraph, link, screenshot note, or writing instruction directly. I will save it as ToolsFinderHub article material.",
     "",
     "Knowledge commands:",
     "/idea + content - save as idea",
